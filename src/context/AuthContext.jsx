@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { api } from '../lib/api.js'
+import { requestNotificationPermission } from '../lib/firebase.js'
 
 const AuthContext = createContext(null)
 
@@ -12,8 +13,6 @@ export function AuthProvider({ children }) {
   const refreshMoney = useCallback(async () => {
     if (!token) return
     try {
-      // requires GET /users/me on the backend — see the note at the
-      // end of the delivery message. Fails quietly if not present yet.
       const me = await api.getMe(token)
       setMoney(me.money)
       if (me.username) setUsername(me.username)
@@ -26,11 +25,16 @@ export function AuthProvider({ children }) {
     refreshMoney().finally(() => setReady(true))
   }, [refreshMoney])
 
-  function login(newToken, newUsername) {
+  async function login(newToken, newUsername) {
     localStorage.setItem('token', newToken)
     localStorage.setItem('username', newUsername)
     setToken(newToken)
     setUsername(newUsername)
+
+    const deviceToken = await requestNotificationPermission()
+    if (deviceToken) {
+      await api.saveDeviceToken(deviceToken, newToken)
+    }
   }
 
   function logout() {

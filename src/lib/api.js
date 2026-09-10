@@ -109,5 +109,8 @@ export const api = {
   updateMoney: (money, token) =>
     request('/users/money', { method: 'PUT', body: { money }, token }),
 
+  saveDeviceToken: (deviceToken, token) =>
+    request('/device-token/', { method: 'POST', body: { token: deviceToken }, token }),
+  
   deleteAccount: (token) => request('/users', { method: 'DELETE', token }),
 }
