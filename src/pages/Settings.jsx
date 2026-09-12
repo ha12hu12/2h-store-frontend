@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, Moon, Sun, Sunset } from 'lucide-react'
+import { LogOut, Moon, Sun, Sunset, Bell} from 'lucide-react'
 import { api } from '../lib/api.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useTheme } from '../context/ThemeContext.jsx'
@@ -16,6 +16,7 @@ export default function Settings() {
   return (
     <div className="flex flex-col gap-6 pb-6">
       <AppearanceSection />
+      <NotificationsSection />
       <UsernameSection />
       <PasswordSection />
       <MoneySection />
@@ -81,7 +82,74 @@ function AppearanceSection() {
     </Section>
   )
 }
+function NotificationsSection() {
+  const { enableNotifications } = useAuth()
+  const toast = useToast()
+  const [loading, setLoading] = useState(false)
+  const [permission, setPermission] = useState(
+    typeof Notification !== 'undefined'
+      ? Notification.permission
+      : 'default'
+  )
 
+  async function handleEnableNotifications() {
+    if (permission === 'denied') {
+      toast.push(
+        'الإشعارات مرفوضة من المتصفح. اسمح بها من إعدادات الموقع ثم حاول مرة أخرى.',
+        'error'
+      )
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      const success = await enableNotifications()
+
+      if (success) {
+        setPermission('granted')
+        toast.push('تم تفعيل الإشعارات')
+      } else {
+        setPermission(Notification.permission)
+        toast.push('لم يتم تفعيل الإشعارات', 'error')
+      }
+    } catch (err) {
+      toast.push(err.message, 'error')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Section title="الإشعارات">
+      <button
+        onClick={handleEnableNotifications}
+        disabled={loading || permission === 'granted'}
+        className="w-full flex items-center justify-center gap-2 py-3 rounded-tag bg-awning text-white text-sm font-bold hover:bg-awningdark transition disabled:opacity-50"
+      >
+        <Bell size={16} />
+
+        {loading ? (
+          <Spinner />
+        ) : permission === 'granted' ? (
+          'الإشعارات مفعلة'
+        ) : permission === 'denied' ? (
+          'السماح بالإشعارات'
+        ) : (
+          'تفعيل الإشعارات'
+        )}
+      </button>
+
+      <p className="text-xs text-inkfaint mt-1.5 text-center">
+        {permission === 'denied'
+          ? 'الإشعارات مرفوضة. اسمح بها من إعدادات الموقع في المتصفح ثم اضغط الزر.'
+          : permission === 'granted'
+            ? 'الإشعارات مفعلة وستصلك التنبيهات الجديدة.'
+            : 'فعّل الإشعارات لتصلك التنبيهات الجديدة مباشرة.'}
+      </p>
+    </Section>
+  )
+}
 function UsernameSection() {
   const auth = useAuth()
   const toast = useToast()

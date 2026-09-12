@@ -12,10 +12,14 @@ export function AuthProvider({ children }) {
 
   const refreshMoney = useCallback(async () => {
     if (!token) return
+
     try {
       const me = await api.getMe(token)
       setMoney(me.money)
-      if (me.username) setUsername(me.username)
+
+      if (me.username) {
+        setUsername(me.username)
+      }
     } catch {
       setMoney(null)
     }
@@ -25,21 +29,36 @@ export function AuthProvider({ children }) {
     refreshMoney().finally(() => setReady(true))
   }, [refreshMoney])
 
+  async function enableNotifications() {
+    if (!token) return
+
+    try {
+      const deviceToken = await requestNotificationPermission()
+
+      if (deviceToken) {
+        await api.saveDeviceToken(deviceToken, token)
+        return true
+      }
+
+      return false
+    } catch (error) {
+      console.error('Failed to enable notifications:', error)
+      return false
+    }
+  }
+
   async function login(newToken, newUsername) {
     localStorage.setItem('token', newToken)
     localStorage.setItem('username', newUsername)
+
     setToken(newToken)
     setUsername(newUsername)
-
-    const deviceToken = await requestNotificationPermission()
-    if (deviceToken) {
-      await api.saveDeviceToken(deviceToken, newToken)
-    }
   }
 
   function logout() {
     localStorage.removeItem('token')
     localStorage.removeItem('username')
+
     setToken(null)
     setUsername(null)
     setMoney(null)
@@ -52,7 +71,18 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ token, username, money, ready, login, logout, refreshMoney, renameLocally, setMoney }}
+      value={{
+        token,
+        username,
+        money,
+        ready,
+        login,
+        logout,
+        refreshMoney,
+        renameLocally,
+        setMoney,
+        enableNotifications
+      }}
     >
       {children}
     </AuthContext.Provider>
